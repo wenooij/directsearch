@@ -7,10 +7,12 @@ import (
 )
 
 type Random struct {
-	Actions []directsearch.Action
-	Rand    *rand.Rand
+	Strategies []directsearch.Strategy
+	Rand       *rand.Rand
 }
 
 func (r *Random) Next() directsearch.Action {
-	return r.Actions[r.Rand.IntN(len(r.Actions))]
+	idx := r.Rand.IntN(len(r.Strategies))
+	s := r.Strategies[idx]
+	return s.Next()
 }

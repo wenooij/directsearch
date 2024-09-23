@@ -3,14 +3,14 @@ package strategy
 import "github.com/wenooij/directsearch"
 
 type RoundRobin struct {
-	Actions   []directsearch.Action
-	NextIndex int
+	Strategies []directsearch.Strategy
+	NextIndex  int
 }
 
 func (r *RoundRobin) Next() directsearch.Action {
-	a := r.Actions[r.NextIndex]
-	if r.NextIndex++; r.NextIndex == len(r.Actions) {
+	s := r.Strategies[r.NextIndex]
+	if r.NextIndex++; r.NextIndex == len(r.Strategies) {
 		r.NextIndex = 0
 	}
-	return a
+	return s.Next()
 }
