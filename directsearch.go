@@ -1,22 +1,27 @@
 package directsearch
 
-type Action any
+type Action interface {
+	String() string
+}
 
-type State struct {
-	Text string
+type State interface {
+	String() string
+}
+
+type Environment interface {
+	State() State
+	Do(Action) (Reward, error)
 }
 
 type Strategy interface {
 	Next() Action
 }
 
-type Node interface {
-	Load(State) error
-	Result() (Result, bool)
+type Actor interface {
+	Strategy() Strategy
+	Update(Reward)
 }
 
-type Result struct {
-	Action Action
-	Score  []float64
-	State  State
+type Reward struct {
+	Score []float64
 }

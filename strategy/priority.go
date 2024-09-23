@@ -8,12 +8,12 @@ import (
 
 type PriorityEntry struct {
 	Priority float64
-	Strategy directsearch.Strategy
+	directsearch.Strategy
 }
 
 type Priority struct{ Entries []PriorityEntry }
 
-func (p Priority) Next() directsearch.Action { return p.Entries[0].Strategy.Next() }
+func (p Priority) Next() directsearch.Action { return p.Entries[0].Next() }
 
 func (p Priority) Fix(i int)            { heap.Fix((*byPriority)(&p.Entries), i) }
 func (p Priority) Init()                { heap.Init((*byPriority)(&p.Entries)) }
