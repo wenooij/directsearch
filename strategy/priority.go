@@ -6,8 +6,12 @@ import (
 	"github.com/wenooij/directsearch"
 )
 
+type PriorityInterface interface {
+	Priority() float64
+}
+
 type PriorityEntry struct {
-	Priority float64
+	PriorityInterface
 	directsearch.Strategy
 }
 
@@ -62,7 +66,7 @@ func (p Priority) IncreasePriority(j int) {
 type byPriority []PriorityEntry
 
 func (a byPriority) Len() int           { return len(a) }
-func (a byPriority) Less(i, j int) bool { return a[i].Priority < a[j].Priority }
+func (a byPriority) Less(i, j int) bool { return a[i].Priority() < a[j].Priority() }
 func (a byPriority) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a *byPriority) Push(x any)        { *a = append(*a, x.(PriorityEntry)) }
 func (a *byPriority) Pop() any          { n := len(*a) - 1; x := (*a)[n]; *a = (*a)[:n]; return x }
