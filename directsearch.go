@@ -17,7 +17,7 @@ type Strategy interface {
 	Next() Action
 }
 
-type Actor interface {
+type Agent interface {
 	Strategy() Strategy
 	Update(Reward)
 }
