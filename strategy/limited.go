@@ -8,7 +8,7 @@ type Limited struct {
 	Limit    int
 }
 
-func (l Limited) Next() directsearch.Action {
+func (l *Limited) Next() directsearch.Action {
 	if l.Count < l.Limit {
 		l.Count++
 		return l.Strategy.Next()

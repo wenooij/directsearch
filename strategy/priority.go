@@ -10,25 +10,27 @@ type PriorityInterface interface {
 	Priority() float64
 }
 
-type PriorityEntry struct {
-	PriorityInterface
+type PriorityEntry[T PriorityInterface] struct {
+	Value T
 	directsearch.Strategy
 }
 
-type Priority struct{ Entries []PriorityEntry }
+type Priority[T PriorityInterface] struct{ Entries []PriorityEntry[T] }
 
-func (p Priority) Next() directsearch.Action { return p.Entries[0].Next() }
+func (p Priority[T]) Next() directsearch.Action { return p.Entries[0].Next() }
 
-func (p Priority) Fix(i int)            { heap.Fix((*byPriority)(&p.Entries), i) }
-func (p Priority) Init()                { heap.Init((*byPriority)(&p.Entries)) }
-func (p *Priority) Pop() PriorityEntry  { return heap.Pop((*byPriority)(&p.Entries)).(PriorityEntry) }
-func (p Priority) Push(x PriorityEntry) { heap.Push((*byPriority)(&p.Entries), x) }
-func (p Priority) Remove(i int) PriorityEntry {
-	return heap.Remove((*byPriority)(&p.Entries), i).(PriorityEntry)
+func (p Priority[T]) Fix(i int) { heap.Fix((*byPriority[T])(&p.Entries), i) }
+func (p Priority[T]) Init()     { heap.Init((*byPriority[T])(&p.Entries)) }
+func (p *Priority[T]) Pop() PriorityEntry[T] {
+	return heap.Pop((*byPriority[T])(&p.Entries)).(PriorityEntry[T])
+}
+func (p Priority[T]) Push(x PriorityEntry[T]) { heap.Push((*byPriority[T])(&p.Entries), x) }
+func (p Priority[T]) Remove(i int) PriorityEntry[T] {
+	return heap.Remove((*byPriority[T])(&p.Entries), i).(PriorityEntry[T])
 }
 
-func (p Priority) DecreasePriority(i0 int) bool {
-	h := byPriority(p.Entries)
+func (p Priority[T]) DecreasePriority(i0 int) bool {
+	h := byPriority[T](p.Entries)
 	n := len(p.Entries)
 	// Adapted from heap.down.
 	i := i0
@@ -50,8 +52,8 @@ func (p Priority) DecreasePriority(i0 int) bool {
 	return i > i0
 }
 
-func (p Priority) IncreasePriority(j int) {
-	h := byPriority(p.Entries)
+func (p Priority[T]) IncreasePriority(j int) {
+	h := byPriority[T](p.Entries)
 	// Adapted from heap.up.
 	for {
 		i := (j - 1) / 2 // parent
@@ -63,10 +65,10 @@ func (p Priority) IncreasePriority(j int) {
 	}
 }
 
-type byPriority []PriorityEntry
+type byPriority[T PriorityInterface] []PriorityEntry[T]
 
-func (a byPriority) Len() int           { return len(a) }
-func (a byPriority) Less(i, j int) bool { return a[i].Priority() < a[j].Priority() }
-func (a byPriority) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a *byPriority) Push(x any)        { *a = append(*a, x.(PriorityEntry)) }
-func (a *byPriority) Pop() any          { n := len(*a) - 1; x := (*a)[n]; *a = (*a)[:n]; return x }
+func (a byPriority[T]) Len() int           { return len(a) }
+func (a byPriority[T]) Less(i, j int) bool { return a[i].Value.Priority() < a[j].Value.Priority() }
+func (a byPriority[T]) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a *byPriority[T]) Push(x any)        { *a = append(*a, x.(PriorityEntry[T])) }
+func (a *byPriority[T]) Pop() any          { n := len(*a) - 1; x := (*a)[n]; *a = (*a)[:n]; return x }
