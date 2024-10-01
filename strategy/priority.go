@@ -6,18 +6,25 @@ import (
 	"github.com/wenooij/directsearch"
 )
 
-type PriorityInterface interface {
+// PriorityItem specifies an item with an associated priority.
+//
+// Larger priority values are higher.
+type PriorityItem interface {
 	Priority() float64
 }
 
-type PriorityEntry[T PriorityInterface] struct {
-	Value T
+// PriorityEntry wraps an item with an associated strategy.
+type PriorityEntry[E PriorityItem] struct {
+	Item E
 	directsearch.Strategy
 }
 
-type Priority[T PriorityInterface] struct{ Entries []PriorityEntry[T] }
+// Priority defines a strategy which selects the highest priority entry greedily.
+type Priority[T PriorityItem] struct{ Entries []PriorityEntry[T] }
 
-func (p Priority[T]) Next() directsearch.Action { return p.Entries[0].Next() }
+func (p Priority[T]) Select() directsearch.Strategy { return p.Entries[0].Strategy }
+
+func (p Priority[T]) Next() directsearch.Action { return p.Select().Next() }
 
 func (p Priority[T]) Fix(i int) { heap.Fix((*byPriority[T])(&p.Entries), i) }
 func (p Priority[T]) Init()     { heap.Init((*byPriority[T])(&p.Entries)) }
@@ -65,10 +72,10 @@ func (p Priority[T]) IncreasePriority(j int) {
 	}
 }
 
-type byPriority[T PriorityInterface] []PriorityEntry[T]
+type byPriority[T PriorityItem] []PriorityEntry[T]
 
 func (a byPriority[T]) Len() int           { return len(a) }
-func (a byPriority[T]) Less(i, j int) bool { return a[i].Value.Priority() < a[j].Value.Priority() }
+func (a byPriority[T]) Less(i, j int) bool { return a[i].Item.Priority() < a[j].Item.Priority() }
 func (a byPriority[T]) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a *byPriority[T]) Push(x any)        { *a = append(*a, x.(PriorityEntry[T])) }
 func (a *byPriority[T]) Pop() any          { n := len(*a) - 1; x := (*a)[n]; *a = (*a)[:n]; return x }

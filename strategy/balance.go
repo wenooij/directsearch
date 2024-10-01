@@ -2,18 +2,19 @@ package strategy
 
 import "math"
 
+// Balance implements an explore-exploit algorithm to select its strategies.
 type Balance struct {
 	Priority[BalanceStats]
 }
 
-func (b Balance) Runs(i int) float64 { return b.Entries[i].Value.Runs }
+func (b Balance) Runs(i int) float64 { return b.Entries[i].Item.Runs }
 
 func (b Balance) SetRuns(i int, runs float64) {
 	if runs <= 0 {
 		panic("runs <= 0")
 	}
-	b.Entries[i].Value.addRuns(runs)
-	b.Entries[i].Value.recomputePriority()
+	b.Entries[i].Item.addRuns(runs)
+	b.Entries[i].Item.recomputePriority()
 	b.Priority.Fix(i)
 }
 
@@ -21,14 +22,14 @@ func (b Balance) AddRuns(i int, runs float64) {
 	if runs <= 0 {
 		panic("runs <= 0")
 	}
-	b.Entries[i].Value.addRuns(runs)
-	b.Entries[i].Value.recomputePriority()
+	b.Entries[i].Item.addRuns(runs)
+	b.Entries[i].Item.recomputePriority()
 	b.Priority.DecreasePriority(i)
 }
 
 func (b Balance) AddScore(i int, score []float64) {
-	b.Entries[i].Value.addScore(score)
-	b.Entries[i].Value.recomputePriority()
+	b.Entries[i].Item.addScore(score)
+	b.Entries[i].Item.recomputePriority()
 	b.Priority.Fix(i)
 }
 
@@ -36,9 +37,9 @@ func (b Balance) AddScoreRuns(i int, score []float64, runs int) {
 	if runs <= 0 {
 		panic("runs <= 0")
 	}
-	b.Entries[i].Value.addScore(score)
-	b.Entries[i].Value.addRuns(float64(runs))
-	b.Entries[i].Value.recomputePriority()
+	b.Entries[i].Item.addScore(score)
+	b.Entries[i].Item.addRuns(float64(runs))
+	b.Entries[i].Item.recomputePriority()
 	b.Priority.Fix(i)
 }
 

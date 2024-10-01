@@ -7,35 +7,64 @@ import (
 	"github.com/wenooij/directsearch"
 )
 
-type WeightedInterface interface {
+// WeightedItem defines an interface for items which have an associated weight.
+type WeightedItem interface {
 	Weight() float64
+	SetWeight(float64)
 }
 
-type WeightedEntry[T WeightedInterface] struct {
-	Value T
+// WeightedEntry is a pair combining a item with an associated strategy.
+type WeightedEntry[E WeightedItem] struct {
+	Item E
 	directsearch.Strategy
 }
 
-type Weighted[T WeightedInterface] struct {
+type wrappedWeightItem[E WeightedItem] struct {
+	w    *Weighted[E]
+	Item E
+}
+
+func (w wrappedWeightItem[E]) Weight() float64 { return w.Item.Weight() }
+
+func (w wrappedWeightItem[E]) SetWeight(weight float64) {
+	w.w.TotalWeight += weight - w.Item.Weight()
+	w.Item.SetWeight(weight)
+}
+
+// Weighted provides a strategy for selecting strategies based on associated weights.
+type Weighted[E WeightedItem] struct {
 	Rand        *rand.Rand
 	TotalWeight float64
-	Entries     []WeightedEntry[T]
+	Entries     []WeightedEntry[wrappedWeightItem[E]]
 }
 
-func (w Weighted[T]) Init() { sort.Sort(byWeight[T](w.Entries)) }
+func (w *Weighted[E]) wrapWeightItem(e E) wrappedWeightItem[E] { return wrappedWeightItem[E]{w, e} }
 
-func (w Weighted[T]) Next() directsearch.Action {
+// Sort the strategies by descending weight.
+func (w Weighted[E]) Sort() { sort.Sort(byWeight[E](w.Entries)) }
+
+// ChangeWeight should be called when changing the weight to keep the values.
+func (w *Weighted[E]) ChangeWeight(i int, weight float64) {
+	e := w.Entries[i]
+	w.TotalWeight += weight - e.Item.Weight()
+	e.Item.SetWeight(weight)
+}
+
+// Select a random strategy proportional to the weights
+func (w Weighted[E]) Select() directsearch.Strategy {
 	t := w.Rand.Float64() * w.TotalWeight
 	for _, e := range w.Entries {
-		if t -= e.Value.Weight(); t <= 0 {
-			return e.Next()
+		if t -= e.Item.Weight(); t <= 0 {
+			return e.Strategy
 		}
 	}
-	return nil // Not usually possible.
+	return Null{} // Not normally possible.
 }
 
-type byWeight[T WeightedInterface] []WeightedEntry[T]
+func (w Weighted[E]) Next() directsearch.Action { s := w.Select(); return s.Next() }
 
-func (a byWeight[T]) Len() int           { return len(a) }
-func (a byWeight[T]) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a byWeight[T]) Less(i, j int) bool { return a[i].Value.Weight() > a[j].Value.Weight() }
+type byWeight[E WeightedItem] []WeightedEntry[wrappedWeightItem[E]]
+
+func (a byWeight[E]) Len() int           { return len(a) }
+func (a byWeight[E]) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a byWeight[E]) Less(i, j int) bool { return a[i].Item.Weight() > a[j].Item.Weight() }
