@@ -2,80 +2,75 @@ package strategy
 
 import (
 	"container/heap"
+	"iter"
 
 	"github.com/wenooij/directsearch"
 )
 
-// PriorityItem specifies an item with an associated priority.
+// Prioritized is an interface for items with a real value priority.
 //
-// Larger priority values are higher.
-type PriorityItem interface {
+// Smaller priority values are higher in priority.
+type Priority interface {
 	Priority() float64
 }
 
-// PriorityEntry wraps an item with an associated strategy.
-type PriorityEntry[E PriorityItem] struct {
-	Item E
+// PrioritizedStrategy wraps a Priority with an associated strategy.
+type PrioritizedStrategy[E Priority] struct {
+	e E
 	directsearch.Strategy
 }
 
-// Priority defines a strategy which selects the highest priority entry greedily.
-type Priority[T PriorityItem] struct{ Entries []PriorityEntry[T] }
+func (p PrioritizedStrategy[E]) Item() E { return p.e }
 
-func (p Priority[T]) Select() directsearch.Strategy { return p.Entries[0].Strategy }
-
-func (p Priority[T]) Next() directsearch.Action { return p.Select().Next() }
-
-func (p Priority[T]) Fix(i int) { heap.Fix((*byPriority[T])(&p.Entries), i) }
-func (p Priority[T]) Init()     { heap.Init((*byPriority[T])(&p.Entries)) }
-func (p *Priority[T]) Pop() PriorityEntry[T] {
-	return heap.Pop((*byPriority[T])(&p.Entries)).(PriorityEntry[T])
-}
-func (p Priority[T]) Push(x PriorityEntry[T]) { heap.Push((*byPriority[T])(&p.Entries), x) }
-func (p Priority[T]) Remove(i int) PriorityEntry[T] {
-	return heap.Remove((*byPriority[T])(&p.Entries), i).(PriorityEntry[T])
+func MakePrioritized[E Priority](s directsearch.Strategy, e E) PrioritizedStrategy[E] {
+	return PrioritizedStrategy[E]{Strategy: s, e: e}
 }
 
-func (p Priority[T]) DecreasePriority(i0 int) bool {
-	h := byPriority[T](p.Entries)
-	n := len(p.Entries)
-	// Adapted from heap.down.
-	i := i0
-	for {
-		j1 := 2*i + 1
-		if j1 >= n || j1 < 0 { // j1 < 0 after int overflow
-			break
-		}
-		j := j1 // left child
-		if j2 := j1 + 1; j2 < n && h.Less(j2, j1) {
-			j = j2 // = 2*i + 2  // right child
-		}
-		if !h.Less(j, i) {
-			break
-		}
-		h.Swap(i, j)
-		i = j
-	}
-	return i > i0
+// Prioritized defines a strategy which selects the highest priority entry greedily.
+//
+// Smaller priority values are higher in priority.
+type Prioritized[E Priority] struct{ entries []PrioritizedStrategy[E] }
+
+func (p Prioritized[E]) MetaStrategy() iter.Seq[directsearch.Strategy] {
+	return infiniteMetaStrategy(p.next).MetaStrategy()
 }
 
-func (p Priority[T]) IncreasePriority(j int) {
-	h := byPriority[T](p.Entries)
-	// Adapted from heap.up.
-	for {
-		i := (j - 1) / 2 // parent
-		if i == j || !h.Less(j, i) {
-			break
-		}
-		h.Swap(i, j)
-		j = i
-	}
+func (p Prioritized[E]) next() directsearch.Strategy { return p.entries[0].Strategy }
+
+// Init the priority list.
+func (p Prioritized[E]) Init() { heap.Init((*byPriority[E])(&p.entries)) }
+func (p *Prioritized[E]) Pop() PrioritizedStrategy[E] {
+	return heap.Pop((*byPriority[E])(&p.entries)).(PrioritizedStrategy[E])
+}
+func (p Prioritized[E]) Push(x PrioritizedStrategy[E]) { heap.Push((*byPriority[E])(&p.entries), x) }
+func (p Prioritized[E]) Remove(i int) PrioritizedStrategy[E] {
+	return heap.Remove((*byPriority[E])(&p.entries), i).(PrioritizedStrategy[E])
 }
 
-type byPriority[T PriorityItem] []PriorityEntry[T]
+// Replace the Entry at i.
+func (p Prioritized[E]) Replace(i int, e PrioritizedStrategy[E]) {
+	p.entries[i] = e
+	p.fix(i)
+}
 
-func (a byPriority[T]) Len() int           { return len(a) }
-func (a byPriority[T]) Less(i, j int) bool { return a[i].Item.Priority() < a[j].Item.Priority() }
-func (a byPriority[T]) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a *byPriority[T]) Push(x any)        { *a = append(*a, x.(PriorityEntry[T])) }
-func (a *byPriority[T]) Pop() any          { n := len(*a) - 1; x := (*a)[n]; *a = (*a)[:n]; return x }
+// ReplaceItem replaces the priority item at i.
+func (p Prioritized[E]) ReplaceItem(i int, e E) {
+	p.entries[i].e = e
+	p.fix(i)
+}
+
+// Replace the Strategy at i.
+func (p Prioritized[E]) ReplaceStrategy(i int, s directsearch.Strategy) { p.entries[i].Strategy = s }
+
+// Fix the priority at i.
+func (p Prioritized[E]) fix(i int) { heap.Fix((*byPriority[E])(&p.entries), i) }
+
+type byPriority[E Priority] []PrioritizedStrategy[E]
+
+func (a byPriority[E]) Len() int { return len(a) }
+func (a byPriority[E]) Less(i, j int) bool {
+	return a[i].e.Priority() < a[j].e.Priority()
+}
+func (a byPriority[E]) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a *byPriority[E]) Push(x any)   { *a = append(*a, x.(PrioritizedStrategy[E])) }
+func (a *byPriority[E]) Pop() any     { n := len(*a) - 1; x := (*a)[n]; *a = (*a)[:n]; return x }

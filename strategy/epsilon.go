@@ -6,17 +6,13 @@ import (
 	"github.com/wenooij/directsearch"
 )
 
-// Epsilon selects EpsilonStrategy proportional to the rate Epsilon
-type Epsilon struct {
-	Rand             *rand.Rand
-	Epsilon          float64
-	EpsilonStrategy  directsearch.Strategy
-	FallbackStrategy directsearch.Strategy
-}
-
-func (e *Epsilon) Next() directsearch.Action {
-	if e.Rand.Float64() < e.Epsilon {
-		return e.EpsilonStrategy.Next()
-	}
-	return e.FallbackStrategy.Next()
+// Epsilon selects eps proportional to the rate epsilon.
+// Otherwise it returns the fallback strategy.
+func Epsilon(r *rand.Rand, epsilon float64, eps, fallback directsearch.Strategy) directsearch.MetaStrategy {
+	return infiniteMetaStrategy(func() directsearch.Strategy {
+		if r.Float64() < epsilon {
+			return eps
+		}
+		return fallback
+	})
 }

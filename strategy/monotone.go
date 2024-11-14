@@ -1,9 +1,10 @@
 package strategy
 
-import "github.com/wenooij/directsearch"
+import (
+	"github.com/wenooij/directsearch"
+)
 
 // Monotone represents a strategy which always returns the specified Action.
-type Monotone struct{ Action directsearch.Action }
-
-// Next returns the specified monotone Action.
-func (a Monotone) Next() directsearch.Action { return a.Action }
+func Monotone(a directsearch.Action) directsearch.Strategy {
+	return infiniteStrategy(func() directsearch.Action { return a })
+}

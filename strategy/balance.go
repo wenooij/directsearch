@@ -4,43 +4,47 @@ import "math"
 
 // Balance implements an explore-exploit algorithm to select its strategies.
 type Balance struct {
-	Priority[BalanceStats]
+	Prioritized[BalanceStats]
 }
 
-func (b Balance) Runs(i int) float64 { return b.Entries[i].Item.Runs }
+func (b Balance) Runs(i int) float64 { return b.entries[i].Item().Runs }
 
 func (b Balance) SetRuns(i int, runs float64) {
 	if runs <= 0 {
 		panic("runs <= 0")
 	}
-	b.Entries[i].Item.addRuns(runs)
-	b.Entries[i].Item.recomputePriority()
-	b.Priority.Fix(i)
+	e := b.entries[i].Item()
+	e.Runs = runs
+	e.recomputePriority()
+	b.Prioritized.ReplaceItem(i, e)
 }
 
 func (b Balance) AddRuns(i int, runs float64) {
 	if runs <= 0 {
 		panic("runs <= 0")
 	}
-	b.Entries[i].Item.addRuns(runs)
-	b.Entries[i].Item.recomputePriority()
-	b.Priority.DecreasePriority(i)
+	e := b.entries[i].Item()
+	e.addRuns(runs)
+	e.recomputePriority()
+	b.Prioritized.ReplaceItem(i, e)
 }
 
 func (b Balance) AddScore(i int, score []float64) {
-	b.Entries[i].Item.addScore(score)
-	b.Entries[i].Item.recomputePriority()
-	b.Priority.Fix(i)
+	e := b.entries[i].Item()
+	e.addScore(score)
+	e.recomputePriority()
+	b.Prioritized.ReplaceItem(i, e)
 }
 
 func (b Balance) AddScoreRuns(i int, score []float64, runs int) {
 	if runs <= 0 {
 		panic("runs <= 0")
 	}
-	b.Entries[i].Item.addScore(score)
-	b.Entries[i].Item.addRuns(float64(runs))
-	b.Entries[i].Item.recomputePriority()
-	b.Priority.Fix(i)
+	e := b.entries[i].Item()
+	e.addScore(score)
+	e.addRuns(float64(runs))
+	e.recomputePriority()
+	b.Prioritized.ReplaceItem(i, e)
 }
 
 type BalanceStats struct {
