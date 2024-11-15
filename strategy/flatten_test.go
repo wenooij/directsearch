@@ -55,3 +55,27 @@ func TestFlatten(t *testing.T) {
 		t.Errorf("TestFlatten() got actions diff (-want, +got):\n%s", diff)
 	}
 }
+
+func TestFlattenZero(t *testing.T) {
+	wantActions := []directsearch.Action{}
+	var gotActions []directsearch.Action
+	for a := range Flatten(func() (directsearch.Strategy, bool) { return Zero{}, true }).Strategy() {
+		gotActions = append(gotActions, a)
+	}
+
+	if diff := cmp.Diff(wantActions, gotActions); diff != "" {
+		t.Errorf("TestFlattenZero() got actions diff (-want, +got):\n%s", diff)
+	}
+}
+
+func TestFlattenForeverZero(t *testing.T) {
+	wantActions := []directsearch.Action{}
+	var gotActions []directsearch.Action
+	for a := range FlattenForever(func() directsearch.Strategy { return Zero{} }).Strategy() {
+		gotActions = append(gotActions, a)
+	}
+
+	if diff := cmp.Diff(wantActions, gotActions); diff != "" {
+		t.Errorf("TestFlattenForeverZero() got actions diff (-want, +got):\n%s", diff)
+	}
+}

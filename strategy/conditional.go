@@ -34,14 +34,14 @@ func SwitchCase(cases ...Case) directsearch.Strategy {
 	return Func(func() (directsearch.Action, bool) {
 		var fallingThrough bool
 		for i, c := range cases {
-			if fallingThrough || !c.Cond() {
+			if !fallingThrough && !c.Cond() {
 				continue
 			}
 			fallingThrough = false
 			a, ok := next[i]()
 			if !ok && c.Fallthrough {
 				fallingThrough = true
-				continue // Fallthrouh to next case.
+				continue // Fallthrough to next case.
 			}
 			return a, ok
 		}

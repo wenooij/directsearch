@@ -2,7 +2,6 @@ package strategy
 
 import (
 	"iter"
-	"slices"
 
 	"github.com/wenooij/directsearch"
 )
@@ -16,25 +15,16 @@ func (q Dequeue) At(i int) directsearch.Strategy { return q[i] }
 
 func (q *Dequeue) Append(es ...directsearch.Strategy) { *q = append(*q, es...) }
 
-func (q Dequeue) Front() directsearch.Strategy {
-	next, _ := iter.Pull(slices.Values(q))
-	return Flatten(func() (directsearch.Strategy, bool) {
-		e, ok := next()
-		if !ok {
-			return nil, false
+func (q Dequeue) Front() directsearch.Strategy { return FlattenStrategies(q...) }
+
+func (q Dequeue) reverse() iter.Seq[directsearch.Strategy] {
+	return func(yield func(directsearch.Strategy) bool) {
+		for i := q.Len() - 1; i >= 0; i-- {
+			if !yield(q.At(i)) {
+				break
+			}
 		}
-		return e, true
-	})
+	}
 }
 
-func (q Dequeue) Back() directsearch.Strategy {
-	i := q.Len() - 1
-	return Flatten(func() (directsearch.Strategy, bool) {
-		if i < 0 || q.Len() <= i {
-			return nil, false
-		}
-		e := q.At(i)
-		i--
-		return e, true
-	})
-}
+func (q Dequeue) Back() directsearch.Strategy { return FlattenStrategiesIter(q.reverse()) }
