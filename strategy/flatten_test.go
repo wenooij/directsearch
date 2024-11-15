@@ -9,12 +9,15 @@ import (
 	"github.com/wenooij/directsearch"
 )
 
-type testMetaStrategy struct{}
-
-func (testMetaStrategy) MetaStrategy() iter.Seq[directsearch.Strategy] {
-	return func(yield func(directsearch.Strategy) bool) {
-		for i := int64(0); i < 3 && yield(testStrategy{start: i}); i++ {
+func testStrategyIter() func() (directsearch.Strategy, bool) {
+	var i int64
+	return func() (directsearch.Strategy, bool) {
+		if i < 3 {
+			e := testStrategy{start: i}
+			i++
+			return e, true
 		}
+		return nil, false
 	}
 }
 
@@ -32,8 +35,6 @@ type testAction int64
 func (i testAction) Action() string { return strconv.FormatInt(int64(i), 10) }
 
 func TestFlatten(t *testing.T) {
-	var s testMetaStrategy
-
 	wantActions := []directsearch.Action{
 		testAction(0),
 		testAction(1),
@@ -46,7 +47,7 @@ func TestFlatten(t *testing.T) {
 		testAction(4),
 	}
 	var gotActions []directsearch.Action
-	for a := range Flatten(s).Strategy() {
+	for a := range Flatten(testStrategyIter()).Strategy() {
 		gotActions = append(gotActions, a)
 	}
 

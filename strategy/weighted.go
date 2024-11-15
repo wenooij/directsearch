@@ -61,8 +61,8 @@ func (w *Weighted[E]) ReplaceItem(i int, e E) {
 	w.entries[i].e = e
 }
 
-func (w Weighted[E]) MetaStrategy() iter.Seq[directsearch.Strategy] {
-	return infiniteMetaStrategy(w.next).MetaStrategy()
+func (w Weighted[E]) Strategy() iter.Seq[directsearch.Action] {
+	return FlattenForever(w.next).Strategy()
 }
 
 func (w Weighted[E]) next() directsearch.Strategy {

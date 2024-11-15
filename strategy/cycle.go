@@ -1,24 +1,27 @@
 package strategy
 
 import (
+	"iter"
+	"slices"
+
 	"github.com/wenooij/directsearch"
 )
 
-// Cycle returns a metastrategy which cycles over s.
+// Cycle returns a strategy which cycles over s.
 //
 // This is often called "round robin" ordering.
-func Cycle(s ...directsearch.Strategy) directsearch.MetaStrategy {
+func Cycle(s ...directsearch.Strategy) directsearch.Strategy {
 	n := len(s)
 	if n == 0 {
 		return Zero{}
 	}
-	i := 0
-	return infiniteMetaStrategy(func() directsearch.Strategy {
-		if n <= i {
-			i = 0
+	next, _ := iter.Pull(slices.Values(s))
+	return FlattenForever(func() directsearch.Strategy {
+		e, ok := next()
+		if !ok {
+			next, _ = iter.Pull(slices.Values(s))
+			e, _ = next()
 		}
-		e := s[i]
-		i++
 		return e
 	})
 }

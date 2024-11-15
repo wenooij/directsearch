@@ -31,8 +31,8 @@ func MakePrioritized[E Priority](s directsearch.Strategy, e E) PrioritizedStrate
 // Smaller priority values are higher in priority.
 type Prioritized[E Priority] struct{ entries []PrioritizedStrategy[E] }
 
-func (p Prioritized[E]) MetaStrategy() iter.Seq[directsearch.Strategy] {
-	return infiniteMetaStrategy(p.next).MetaStrategy()
+func (p Prioritized[E]) Strategy() iter.Seq[directsearch.Action] {
+	return FlattenForever(p.next).Strategy()
 }
 
 func (p Prioritized[E]) next() directsearch.Strategy { return p.entries[0].Strategy }
